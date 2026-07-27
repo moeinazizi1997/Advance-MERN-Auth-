@@ -10,7 +10,8 @@ const appConfig = ()=>({
         JWT_ACCESS_TOKEN_EXPIRES_IN : getEnv("JWT_ACCESS_TOKEN_EXPIRES_IN",'15m'),
         JWT_REFRESH_TOKEN_SECRET : getEnv("JWT_REFRESH_TOKEN_SECRET"),
         JWT_REFRESH_TOKEN_EXPIRES_IN : getEnv("JWT_REFRESH_TOKEN_EXPIRES_IN","7d")
-    }
+    },
+    MONGO_URI : getEnv("MONGO_URI")
 });
 
 export const config = appConfig();

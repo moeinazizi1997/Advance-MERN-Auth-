@@ -3,6 +3,7 @@ import cors from "cors"
 import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import { config } from "./config/app.config";
+import connectDatabase from "./database/models/database";
 
 const BASE_PATH = config.BASE_PATH;
 
@@ -24,5 +25,6 @@ app.get("/health",(req:Request,res:Response)=>{
 });
 
 app.listen(config.PORT,async ()=>{
-    console.log(`Server is listening on port ${config.PORT} in ${config.NODE_ENV}`)
+    console.log(`Server is listening on port ${config.PORT} in ${config.NODE_ENV}`);
+    await connectDatabase();
 })
