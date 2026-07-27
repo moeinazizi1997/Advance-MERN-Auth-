@@ -4,6 +4,7 @@ import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import { config } from "./config/app.config";
 import connectDatabase from "./database/models/database";
+import errorHandlerMiddleware from "./middlewares/errorHandler.middleware";
 
 const BASE_PATH = config.BASE_PATH;
 
@@ -23,6 +24,8 @@ app.get("/health",(req:Request,res:Response)=>{
         message : "healthy"
     })
 });
+
+app.use(errorHandlerMiddleware);
 
 app.listen(config.PORT,async ()=>{
     console.log(`Server is listening on port ${config.PORT} in ${config.NODE_ENV}`);
