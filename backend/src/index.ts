@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import { config } from "./config/app.config";
 import connectDatabase from "./database/models/database";
 import errorHandlerMiddleware from "./middlewares/errorHandler.middleware";
+import authRouter from "./modules/auth/auth.routes";
 
 const BASE_PATH = config.BASE_PATH;
 
@@ -24,6 +25,8 @@ app.get("/health",(req:Request,res:Response)=>{
         message : "healthy"
     })
 });
+
+app.use(`${BASE_PATH}/auth`,authRouter);
 
 app.use(errorHandlerMiddleware);
 
