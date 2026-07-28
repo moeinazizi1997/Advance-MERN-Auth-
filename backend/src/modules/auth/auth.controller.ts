@@ -3,7 +3,8 @@ import { AuthService } from "./auth.service";
 import { loginSchema, registerSchema } from "../../common/validators/auth.validator";
 import { asyncHandler } from "../../middlewares/asyncHandler";
 import { HTTPSTATUS } from "../../config/http.config";
-import { setAuthenticationCookies } from "../../common/utils/cookie";
+import { getAccessTokenCookieOptions, getRefreshTokenCookieOptions, setAuthenticationCookies } from "../../common/utils/cookie";
+import { UnauthorizedException } from "../../common/utils/catch-error";
 
 
 export class AuthController{
@@ -55,6 +56,27 @@ export class AuthController{
                 message : "User loggend-in successfully",
                 data : user,
                 mfaRequired
+            });
+        }
+    );
+
+    public refreshToken = asyncHandler(
+        async (req:Request,res:Response,next:NextFunction):Promise<Response>=>{
+
+            const refreshToken = req.cookies.refreshToken as string | undefined;
+
+            if(!refreshToken){
+                throw new UnauthorizedException("User not authorized");
+            }
+
+            const {accessToken,newRefreshToken} = await this.authService.refreshToken(refreshToken);
+
+            if(newRefreshToken){
+                res.cookie("resfreshToekn",newRefreshToken,getRefreshTokenCookieOptions())
+            }
+
+            return res.status(HTTPSTATUS.OK).cookie("accessToken",accessToken,getAccessTokenCookieOptions()).json({
+                message : "Refresh access token successfully",
             });
         }
     )
