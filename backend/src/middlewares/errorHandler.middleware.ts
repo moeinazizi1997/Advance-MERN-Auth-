@@ -2,9 +2,14 @@ import { ErrorRequestHandler} from "express";
 import { HTTPSTATUS } from "../config/http.config";
 import { AppError } from "../common/utils/AppError";
 import { ZodError } from "zod";
+import { clearAuthenticationCookies, REFRESH_PATH } from "../common/utils/cookie";
 
 const errorHandlerMiddleware : ErrorRequestHandler = (err,req,res,next): any=>{
     console.log(`Error occured on PATH: ${req.path} and error is:`,err.message);
+
+    if(req.path === REFRESH_PATH){
+        clearAuthenticationCookies(res);
+    }
 
     if(err instanceof AppError){
         return res.status(err.statusCode).json({
