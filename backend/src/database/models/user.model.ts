@@ -29,6 +29,7 @@ const userSchema = new Schema<UserDocument>({
     email : {type : String, unique:true, required:true},
     password : {type:String, required: true},
     userPreferences : {type : userPreferencesSchema, default : {}},
+    isEmailVerified : {type : Boolean, default:false}
 
 },{timestamps : true,toJSON:{}});
 

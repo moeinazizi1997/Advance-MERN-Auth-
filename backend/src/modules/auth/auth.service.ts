@@ -8,6 +8,7 @@ import { calculateExpirationDate, fortyFiveMinutesFromNow, ONE_DAY_IN_MS } from 
 import SessionModel from "../../database/models/session.model";
 import { RefreshTokenPayloadType, refreshTokenSignOptions, signJWTToken, verifyJWTToken } from "../../common/utils/jwt";
 import { config } from "../../config/app.config";
+import { sendVerificationCode } from "../../common/utils/OTP";
 
 export class AuthService {
     public async register (registerData : RegisterDto){
@@ -31,7 +32,7 @@ export class AuthService {
             expiresAt : fortyFiveMinutesFromNow()
         });
 
-        // Sending verification email link
+        await sendVerificationCode(name,email,"user-activation-mail",verificationCode.code);
 
         return {
             user : newUser,
@@ -120,5 +121,31 @@ export class AuthService {
             accessToken,
             newRefreshToken
         }
+    };
+
+    public async verifyEmail(code : string){
+        const validCode = await VerificationCodeModel.findOne({
+            code,
+            type : verificationCodeEnum.EMAIL_VERIFICATION,
+            expiresAt : {$gt : new Date()}
+        });
+
+        if(!validCode){
+            throw new BadRequestException("Invalid or expired verification code",ErrorCode.VERIFICATION_ERROR);
+        }
+
+        const user = await UserModel.findById(validCode.userId);
+
+        if(!user){
+            throw new BadRequestException("User not found",ErrorCode.AUTH_USER_NOT_FOUND);
+        }
+
+        user.isEmailVerified = true;
+        await user.save();
+
+        await VerificationCodeModel.deleteOne({code});
+
+        return {user};
+
     }
 }

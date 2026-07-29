@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "./auth.service";
-import { loginSchema, registerSchema } from "../../common/validators/auth.validator";
+import { loginSchema, registerSchema, resetPasswordSchema, verificationEmailSchema } from "../../common/validators/auth.validator";
 import { asyncHandler } from "../../middlewares/asyncHandler";
 import { HTTPSTATUS } from "../../config/http.config";
 import { getAccessTokenCookieOptions, getRefreshTokenCookieOptions, setAuthenticationCookies } from "../../common/utils/cookie";
@@ -19,7 +19,7 @@ export class AuthController{
             const result = registerSchema.safeParse(req.body);
 
             if (!result.success) {
-                return res.status(400).json({
+                return res.status(HTTPSTATUS.BAD_REQUEST).json({
                     errors: result.error.flatten().fieldErrors
                 });
             };
@@ -42,7 +42,7 @@ export class AuthController{
                 userAgent
             });
             if (!result.success) {
-                return res.status(400).json({
+                return res.status(HTTPSTATUS.BAD_REQUEST).json({
                     errors: result.error.flatten().fieldErrors
                 });
             };
@@ -79,5 +79,28 @@ export class AuthController{
                 message : "Refresh access token successfully",
             });
         }
-    )
+    );
+
+    public verifyEmail = asyncHandler(
+        async (req:Request,res:Response,next:NextFunction):Promise<Response>=>{
+
+            const result = verificationEmailSchema.safeParse({
+                ...req.body
+            });
+
+            if (!result.success) {
+                return res.status(HTTPSTATUS.BAD_REQUEST).json({
+                    errors: result.error.flatten().fieldErrors
+                });
+            };
+
+            const validatedBody = result.data;
+
+            await this.authService.verifyEmail(validatedBody.code);
+
+            return res.status(HTTPSTATUS.OK).json({
+                message : "Email verified successfully"
+            });
+        }
+    );
 }

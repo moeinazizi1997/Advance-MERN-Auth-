@@ -18,4 +18,15 @@ export const loginSchema = z.object({
     email : emailSchema,
     password : passwordSchema,
     userAgent : z.string().optional()
-})
+});
+
+export const verificationCodeSchema = z.string().trim().min(1).max(25);
+
+export const verificationEmailSchema = z.object({
+    code : verificationCodeSchema
+});
+
+export const resetPasswordSchema = z.object({
+    password : passwordSchema,
+    verificationCode : verificationCodeSchema
+});
