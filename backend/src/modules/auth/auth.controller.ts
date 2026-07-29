@@ -3,7 +3,7 @@ import { AuthService } from "./auth.service";
 import { emailSchema, loginSchema, registerSchema, resetPasswordSchema, verificationEmailSchema } from "../../common/validators/auth.validator";
 import { asyncHandler } from "../../middlewares/asyncHandler";
 import { HTTPSTATUS } from "../../config/http.config";
-import { getAccessTokenCookieOptions, getRefreshTokenCookieOptions, setAuthenticationCookies } from "../../common/utils/cookie";
+import { clearAuthenticationCookies, getAccessTokenCookieOptions, getRefreshTokenCookieOptions, setAuthenticationCookies } from "../../common/utils/cookie";
 import { UnauthorizedException } from "../../common/utils/catch-error";
 
 
@@ -118,6 +118,26 @@ export class AuthController{
 
             return res.status(HTTPSTATUS.OK).json({
                 message : "Password reset email was sent"
+            });
+        }
+    );
+
+    public resetPassword = asyncHandler(
+        async (req:Request,res:Response,next:NextFunction):Promise<Response>=>{
+            const result = resetPasswordSchema.safeParse(req.body);
+
+            if (!result.success) {
+                return res.status(HTTPSTATUS.BAD_REQUEST).json({
+                    errors: result.error.flatten().fieldErrors
+                });
+            };
+
+            await this.authService.resetPassword(result.data);
+
+            const response = clearAuthenticationCookies(res);
+
+            return response.status(HTTPSTATUS.OK).json({
+                message : "Password reset successfully"
             });
         }
     );

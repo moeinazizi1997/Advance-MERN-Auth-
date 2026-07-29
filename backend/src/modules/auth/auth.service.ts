@@ -1,4 +1,4 @@
-import { LoginDto, RegisterDto } from "../../common/interfaces/auth.interface";
+import { LoginDto, RegisterDto, ResetPasswordDto } from "../../common/interfaces/auth.interface";
 import UserModel from "../../database/models/user.model";
 import { BadRequestException, HttpException, NotFoundException, UnauthorizedException } from "../../common/utils/catch-error";
 import { ErrorCode } from "../../common/enums/errorCode.enums";
@@ -10,6 +10,7 @@ import { RefreshTokenPayloadType, refreshTokenSignOptions, signJWTToken, verifyJ
 import { config } from "../../config/app.config";
 import { sendResetLink, sendVerificationCode } from "../../common/utils/OTP";
 import { HTTPSTATUS } from "../../config/http.config";
+import { hashValue } from "../../common/utils/bcrypt";
 
 export class AuthService {
     public async register (registerData : RegisterDto){
@@ -180,5 +181,39 @@ export class AuthService {
         const resetLink = `${config.APP_ORIGIN}/reset-password?code=${verificationCode.code}&exp=${expiresAt.getTime()}`;
 
         await sendResetLink(user.name,email,"reset-password-mail",resetLink);
+    }
+
+    public async resetPassword({password,verificationCode}:ResetPasswordDto){
+        const validCode = await VerificationCodeModel.findOne({
+            code : verificationCode,
+            type : verificationCodeEnum.PASSWORD_RESET,
+            expiresAt : {$gt: new Date()}
+        });
+
+        if(!validCode){
+            throw new NotFoundException("Invalid or expired verification code");
+        }
+
+        const user = await UserModel.findById(validCode.userId);
+
+        if (!user) {
+            throw new NotFoundException("User not found");
+        }
+
+        user.password = password;
+        await user.save();
+
+        await VerificationCodeModel.deleteMany({
+            userId: validCode.userId,
+            type: verificationCodeEnum.PASSWORD_RESET,
+        });
+
+        await SessionModel.deleteMany({
+            userId : user._id
+        });
+
+        return {
+            user
+        }
     }
 }
