@@ -1,14 +1,15 @@
 import { LoginDto, RegisterDto } from "../../common/interfaces/auth.interface";
 import UserModel from "../../database/models/user.model";
-import { BadRequestException, UnauthorizedException } from "../../common/utils/catch-error";
+import { BadRequestException, HttpException, NotFoundException, UnauthorizedException } from "../../common/utils/catch-error";
 import { ErrorCode } from "../../common/enums/errorCode.enums";
 import VerificationCodeModel from "../../database/models/verification.model";
 import { verificationCodeEnum } from "../../common/enums/verification-code.enum";
-import { calculateExpirationDate, fortyFiveMinutesFromNow, ONE_DAY_IN_MS } from "../../common/utils/date-time";
+import { anHourFromNow, calculateExpirationDate, fortyFiveMinutesFromNow, ONE_DAY_IN_MS, threeMinutesAgo } from "../../common/utils/date-time";
 import SessionModel from "../../database/models/session.model";
 import { RefreshTokenPayloadType, refreshTokenSignOptions, signJWTToken, verifyJWTToken } from "../../common/utils/jwt";
 import { config } from "../../config/app.config";
-import { sendVerificationCode } from "../../common/utils/OTP";
+import { sendResetLink, sendVerificationCode } from "../../common/utils/OTP";
+import { HTTPSTATUS } from "../../config/http.config";
 
 export class AuthService {
     public async register (registerData : RegisterDto){
@@ -145,7 +146,39 @@ export class AuthService {
 
         await VerificationCodeModel.deleteOne({code});
 
-        return {user};
+    };
 
+    public async forgotPassword(email:string){
+        const user = await UserModel.findOne({email});
+
+        if(!user){
+            throw new NotFoundException("User not found!");
+        }
+
+        const timeAgo = threeMinutesAgo();
+
+        const maxAttemps = 2;
+
+        const count = await VerificationCodeModel.countDocuments({
+            userId : user._id,
+            type : verificationCodeEnum.PASSWORD_RESET,
+            createdAt : {$gt : timeAgo}
+        });
+
+        if(count >= maxAttemps){
+            throw new HttpException("Too many request, try again later",HTTPSTATUS.TOO_MANY_REQUESTS,ErrorCode.AUTH_TOO_MANY_ATTEMPTS);
+        }
+
+        const expiresAt = anHourFromNow();
+
+        const verificationCode = await VerificationCodeModel.create({
+            userId : user._id,
+            type : verificationCodeEnum.PASSWORD_RESET,
+            expiresAt
+        });
+
+        const resetLink = `${config.APP_ORIGIN}/reset-password?code=${verificationCode.code}&exp=${expiresAt.getTime()}`;
+
+        await sendResetLink(user.name,email,"reset-password-mail",resetLink);
     }
 }

@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "./auth.service";
-import { loginSchema, registerSchema, resetPasswordSchema, verificationEmailSchema } from "../../common/validators/auth.validator";
+import { emailSchema, loginSchema, registerSchema, resetPasswordSchema, verificationEmailSchema } from "../../common/validators/auth.validator";
 import { asyncHandler } from "../../middlewares/asyncHandler";
 import { HTTPSTATUS } from "../../config/http.config";
 import { getAccessTokenCookieOptions, getRefreshTokenCookieOptions, setAuthenticationCookies } from "../../common/utils/cookie";
@@ -100,6 +100,24 @@ export class AuthController{
 
             return res.status(HTTPSTATUS.OK).json({
                 message : "Email verified successfully"
+            });
+        }
+    );
+
+    public forgotPassword = asyncHandler(
+        async (req:Request,res:Response,next:NextFunction):Promise<Response>=>{
+            const result = emailSchema.safeParse(req.body.email);
+
+            if (!result.success) {
+                return res.status(HTTPSTATUS.BAD_REQUEST).json({
+                    errors: result.error.flatten().fieldErrors
+                });
+            };
+
+            await this.authService.forgotPassword(result.data);
+
+            return res.status(HTTPSTATUS.OK).json({
+                message : "Password reset email was sent"
             });
         }
     );
